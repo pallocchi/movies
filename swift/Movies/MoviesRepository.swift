@@ -46,33 +46,11 @@ final class MoviesRepository {
      - Returns: An array of the top n movies
      */
     func top(limit: Int = 100) -> [Movie] {
-        return run(query: "SELECT title, overview, poster, year FROM movies")
-    }
-    
-    /**
-     Get the movies that match a given text.
-     
-     - Parameters:
-        - text: The text to use
-     
-     - Returns: An array of movies matching the given text, sorted by relevance
-     */
-    func search(text: String) -> [Movie] {
-        return run(query: "SELECT title, overview, poster, year FROM movies WHERE movies MATCH '\(text)*' AND rank MATCH 'bm25(\(titleWeight), \(overviewWeight))' ORDER BY rank")
-    }
-    
-    /**
-     Run a specific query and parse the results.
-     
-     - Parameters:
-        - query: The query to execute
-     
-     - Returns: An array of movies found for the given query
-     */
-    private func run(query: String) -> [Movie] {
         
         var movies: [Movie] = []
         var statement: OpaquePointer?
+        
+        let query = "SELECT title, overview, poster, year FROM movies"
         
         if sqlite3_prepare_v2(db, query, -1, &statement, nil) != SQLITE_OK {
             print("Error preparing select: \(String(cString: sqlite3_errmsg(db)!))")
@@ -102,4 +80,56 @@ final class MoviesRepository {
         
         return movies
     }
+    
+    /**
+     Get the movies that match a given text.
+     
+     - Parameters:
+        - text: The text to use
+     
+     - Returns: An array of movies matching the given text, sorted by relevance
+     */
+    func search(text: String) -> [Movie] {
+        
+        var movies: [Movie] = []
+        var statement: OpaquePointer?
+        
+        let query = "SELECT title, overview, poster, year, matchinfo(movies, 'pcnalx') FROM movies WHERE movies MATCH '\(text)*'"
+        
+        if sqlite3_prepare_v2(db, query, -1, &statement, nil) != SQLITE_OK {
+            print("Error preparing select: \(String(cString: sqlite3_errmsg(db)!))")
+        }
+        
+        while sqlite3_step(statement) == SQLITE_ROW {
+            if
+                let c0 = sqlite3_column_text(statement, 0),
+                let c1 = sqlite3_column_text(statement, 1),
+                let c2 = sqlite3_column_text(statement, 2)
+            {
+                let c3 = sqlite3_column_int64(statement, 3)
+
+                let buf = sqlite3_column_blob(statement, 4).assumingMemoryBound(to: UInt32.self)
+                let blob = [UInt32](UnsafeBufferPointer(start: buf, count: Int(sqlite3_column_bytes(statement, 4))))
+                let score = OkapiBM25.score(matchinfo: blob, column: 0)
+                
+                movies.append(
+                    Movie(
+                        title: String(cString: c0),
+                        overview: String(cString: c1),
+                        poster: String(cString: c2),
+                        year: Int(c3),
+                        score: score
+                    )
+                )
+                
+            }
+        }
+        
+        if sqlite3_finalize(statement) != SQLITE_OK {
+            print("Error finalizing prepared statement: \(String(cString: sqlite3_errmsg(db)!))")
+        }
+        
+        return movies.sorted(by: {$0.score > $1.score})
+    }
+
 }

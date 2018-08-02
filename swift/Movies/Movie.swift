@@ -28,12 +28,14 @@ final class Movie {
     let overview: String
     let poster: String
     let year: Int
+    let score: Double
     
-    init(title: String, overview: String, poster: String, year:Int) {
+    init(title: String, overview: String, poster: String, year: Int, score: Double = 0) {
         self.title = title
         self.overview = overview
         self.poster = poster
         self.year = year
+        self.score = score
     }
     
 }
