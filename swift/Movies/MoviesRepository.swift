@@ -80,17 +80,17 @@ final class MoviesRepository {
         
         while sqlite3_step(statement) == SQLITE_ROW {
             if
-                let c0 = sqlite3_column_text(statement, 0),
-                let c1 = sqlite3_column_text(statement, 1),
-                let c2 = sqlite3_column_text(statement, 2)
+                let cTitle = sqlite3_column_text(statement, 0),
+                let cOverview = sqlite3_column_text(statement, 1),
+                let cPoster = sqlite3_column_text(statement, 2)
             {
-                let c3 = sqlite3_column_int64(statement, 3)
+                let cYear = sqlite3_column_int64(statement, 3)
                 movies.append(
                     Movie(
-                        title: String(cString: c0),
-                        overview: String(cString: c1),
-                        poster: String(cString: c2),
-                        year: Int(c3)
+                        title: String(cString: cTitle),
+                        overview: String(cString: cOverview),
+                        poster: String(cString: cPoster),
+                        year: Int(cYear)
                     )
                 )
             }
