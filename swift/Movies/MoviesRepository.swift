@@ -58,17 +58,17 @@ final class MoviesRepository {
         
         while sqlite3_step(statement) == SQLITE_ROW {
             if
-                let c0 = sqlite3_column_text(statement, 0),
-                let c1 = sqlite3_column_text(statement, 1),
-                let c2 = sqlite3_column_text(statement, 2)
+                let cTitle = sqlite3_column_text(statement, 0),
+                let cOverview = sqlite3_column_text(statement, 1),
+                let cPoster = sqlite3_column_text(statement, 2)
             {
-                let c3 = sqlite3_column_int64(statement, 3)
+                let cYear = sqlite3_column_int64(statement, 3)
                 movies.append(
                     Movie(
-                        title: String(cString: c0),
-                        overview: String(cString: c1),
-                        poster: String(cString: c2),
-                        year: Int(c3)
+                        title: String(cString: cTitle),
+                        overview: String(cString: cOverview),
+                        poster: String(cString: cPoster),
+                        year: Int(cYear)
                     )
                 )
             }
@@ -102,22 +102,26 @@ final class MoviesRepository {
         
         while sqlite3_step(statement) == SQLITE_ROW {
             if
-                let c0 = sqlite3_column_text(statement, 0),
-                let c1 = sqlite3_column_text(statement, 1),
-                let c2 = sqlite3_column_text(statement, 2)
+                let cTitle = sqlite3_column_text(statement, 0),
+                let cOverview = sqlite3_column_text(statement, 1),
+                let cPoster = sqlite3_column_text(statement, 2)
             {
-                let c3 = sqlite3_column_int64(statement, 3)
+                let cYear = sqlite3_column_int64(statement, 3)
 
+                // Read and prepare matchinfo blob
                 let buf = sqlite3_column_blob(statement, 4).assumingMemoryBound(to: UInt32.self)
                 let blob = [UInt32](UnsafeBufferPointer(start: buf, count: Int(sqlite3_column_bytes(statement, 4))))
+                
+                // Calculate score based on matchinfo values
+                // Here I'm only using the first column (title) to calculate the score
                 let score = OkapiBM25.score(matchinfo: blob, column: 0)
                 
                 movies.append(
                     Movie(
-                        title: String(cString: c0),
-                        overview: String(cString: c1),
-                        poster: String(cString: c2),
-                        year: Int(c3),
+                        title: String(cString: cTitle),
+                        overview: String(cString: cOverview),
+                        poster: String(cString: cPoster),
+                        year: Int(cYear),
                         score: score
                     )
                 )
@@ -129,6 +133,7 @@ final class MoviesRepository {
             print("Error finalizing prepared statement: \(String(cString: sqlite3_errmsg(db)!))")
         }
         
+        // Sort the movies by the Okapi BM25 score
         return movies.sorted(by: {$0.score > $1.score})
     }
 

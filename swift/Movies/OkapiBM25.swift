@@ -24,6 +24,17 @@ import Foundation
 
 final class OkapiBM25 {
     
+    /**
+     Calculate the score based on the matchinfo data returned by SQLite.
+     
+     - Parameters:
+        - matchinfo: The matchinfo values
+        - column: The column to calculate the score
+        - b: The b parameter of Okapi BM25
+        - k1: The k1 parameter of Okapi BM25
+     
+     - Returns: The Okapi BM25 score
+     */
     static func score(matchinfo: [UInt32], column: Int, b: Double = 0.75, k1: Double = 1.2) -> Double {
         
         let pOffset = 0
